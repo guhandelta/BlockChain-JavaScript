@@ -4,6 +4,8 @@ function Blockchain(){
     this.chain = [];
     this.pendingTransactions = [];// All thh transactions here, are not recorded. THey get validates and recorded in the blockchain--
     // --when a new block is created
+    // Generating a Genesis Block(the 1st block of a blockchain) with arbitrary values
+    this.createNewBlock(100,'0','0');
 }
 
 Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, hash){
@@ -25,11 +27,11 @@ Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, hash){
      return newBlock;
 }
 
-Blockchain.prototype.getLastBlock = function(){
+Blockchain.prototype.getLastBlock = () => {
     return this.chain[this.chain.length - 1];
 }
 
-Blockchain.prototype.createNewTranasction = function(amount, sender, recipient){
+Blockchain.prototype.createNewTranasction = function(amount, sender, recipient) {
     const newTransaction = {
         amount: amount,
         sender: sender,
@@ -41,13 +43,27 @@ Blockchain.prototype.createNewTranasction = function(amount, sender, recipient){
     return this.getLastBlock()['index'] + 1;// Return the number of the block where the new transaction will be recorded
 }
 
-Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockData, nonce){
+Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockData, nonce) {
     // This fn will take a block from the block chain and hash it into a fixed length string
     // So this takes in a block data and returns a fixed length string, which is the hash of the data
     const dataAsString = previousBlockHash +nonce.toString() + JSON.stringify(currentBlockData);
     //  All of the data will be concatenated into a single string
     const hash = sha256(dataAsString);
-    return hash;
+    return hash; 
+}
+
+Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData) {
+    // Repeatedly run hashBlock() until it finds the correct Hash(with the same 4 bits in the begninning)
+    // Uses previous block hash and current block data and continuously change the nonce, until the correct hash is found
+    // Return the nonce value that gave the correct hash
+    let nonce =0;
+    let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+    while(hash.substring(0,4)!=='0000'){
+        nonce++;
+        hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+    }
+    return nonce;// Return the nonce that generated the current hash, which in this case starts with 0000. ==> None is the proof of work
+
 }
 
 module.exports = Blockchain;// To allow the test.js to create new blocks for testing
