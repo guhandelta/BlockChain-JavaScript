@@ -1,5 +1,6 @@
 const sha256 = require('sha256');
 const currentNodeUrl = process.argv[3];// To have access to the current Node's URL, to assign it to the Blockchain 
+const uuid = require('uuid/v1');
 
 function Blockchain(){
     this.chain = [];
@@ -40,12 +41,16 @@ Blockchain.prototype.createNewTransaction = function(amount, sender, recipient) 
     const newTransaction = {
         amount: amount,
         sender: sender,
-        recipient: recipient
+        recipient: recipient,
+        transactionId: uuid().split('-').join("")
     };
-    this.pendingTransactions.push(newTransaction);// The newTransaction will be pushed to the pending transactions--
-    // -- in the next created block
+    
+    return newTransaction;
+}
 
-    return this.getLastBlock()['index'] + 1;// Return the number of the block where the new transaction will be recorded
+Blockchain.prototype.addTransactionsToPendingTransactions = function(transactionObj){
+    this.pendingTransactions.push(transactionObj);
+    return this.getLastBlock()['index'] + 1;// Return the index of the block, that this transaction will be added to
 }
 
 Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockData, nonce) {

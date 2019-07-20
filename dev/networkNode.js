@@ -19,10 +19,37 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.get('/blockchain', function(req,res){
     res.send(bitcoin);
 });
-
+// Create a new Transaction
 app.post('/transaction', function(req,res){
     const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
     res.json({Note:`Transaction will be added to the block ${blockIndex}`});
+});
+
+// Create a new Transaction and Broadcast it to all the other nodes in the network
+app.post('/transaction/broadcast', function(req,res){
+    const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
+    // Add this transaction to the Pending Transactions, on this node, in the network
+    bitcoin.addTransactionsToPendingTransactions(newTransaction);
+
+    // Broadcast the new transaction to all the available nodes in the network, by looping through the networkNodes and network node urls--
+    // -- and making requests to the transaction endpoint('/transaction') on all the other nodes in the network
+    bitcoin.networkNodes.forEach(networkNodeUrl => {
+        const requestPromises = [];
+        const requestOptions = {
+            url: networkNodeUrl + '/transaction', // Requesting the /transaction endpoint of evey node
+            method: 'POST', // Send the in a Post req
+            body: newTransaction, // Send the newTransaction, as the body of the request
+            json: true // The data is to be sent as JSON
+        };
+        requestPromises.push(rp(requestOptions));
+        // After the completion of the forEach(), all of these requests will be populated in the requestPromises[]
+    });
+    // Run all of the requests, by passing in the array of requests
+    Promise.all(requestPromises)
+        .then(data =>{
+            // Now is data will not be touched here, as the broadcast is already complete, so just sending a response as the broadcast was successful
+            res.json({note:'Transaction Created and Broacasted Successfully!!'});
+        })
 });
 
 // This will mine and create a new block, by performing a new block
