@@ -19,26 +19,31 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.get('/blockchain', function(req,res){
     res.send(bitcoin);
 });
-// Create a new Transaction
+// This endpoint will be hit during a broadcast, to receive teh newTransaction and add it to the pendingTransaction[] of that node
 app.post('/transaction', function(req,res){
-    const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
-    res.json({Note:`Transaction will be added to the block ${blockIndex}`});
+    // Whenever, this endpoint recieves the newTransaciton, all that needs to be done is just to push it into-- 
+    // --the pendingTransactions[] of the node, that recieved this call
+    const newTransaciton = req.body; //  This is done here to store the newTransaction, sent to this endpoint as the entire body of teh req
+    const blockIndex = bitcoin.addTransactionsToPendingTransactions(newTransaciton);
+    res.json({note: `The new transaction will be added to the block ${blockIndex}.`});
 });
 
 // Create a new Transaction and Broadcast it to all the other nodes in the network
 app.post('/transaction/broadcast', function(req,res){
+    //========================> Create a New Transaction <========================
     const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
     // Add this transaction to the Pending Transactions, on this node, in the network
     bitcoin.addTransactionsToPendingTransactions(newTransaction);
 
+    //========================> Broadcast the  New Transaction <========================
     // Broadcast the new transaction to all the available nodes in the network, by looping through the networkNodes and network node urls--
     // -- and making requests to the transaction endpoint('/transaction') on all the other nodes in the network
+    const requestPromises = [];
     bitcoin.networkNodes.forEach(networkNodeUrl => {
-        const requestPromises = [];
         const requestOptions = {
             url: networkNodeUrl + '/transaction', // Requesting the /transaction endpoint of evey node
             method: 'POST', // Send the in a Post req
-            body: newTransaction, // Send the newTransaction, as the body of the request
+            body: newTransaction, // Send the newTransaction, as the entire body of the request
             json: true // The data is to be sent as JSON
         };
         requestPromises.push(rp(requestOptions));
@@ -49,6 +54,7 @@ app.post('/transaction/broadcast', function(req,res){
         .then(data =>{
             // Now is data will not be touched here, as the broadcast is already complete, so just sending a response as the broadcast was successful
             res.json({note:'Transaction Created and Broacasted Successfully!!'});
+            // This response will be sent after the broadcast is complete and all the nodes in the network are updated about the newTransaction
         })
 });
 
