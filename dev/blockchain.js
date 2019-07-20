@@ -1,9 +1,14 @@
 const sha256 = require('sha256');
+const currentNodeUrl = process.argv[3];// To have access to the current Node's URL, to assign it to the Blockchain 
 
 function Blockchain(){
     this.chain = [];
     this.pendingTransactions = [];// All thh transactions here, are not recorded. THey get validates and recorded in the blockchain--
     // --when a new block is created
+
+    this.currentNodeUrl = currentNodeUrl;
+    this.networkNodes = [];//This array will be filled with the other network nodes, so all the nodes would be aware of the other nodes in the n/w
+
     // Generating a Genesis Block(the 1st block of a blockchain) with arbitrary values
     this.createNewBlock(100,'0','0');
 }
