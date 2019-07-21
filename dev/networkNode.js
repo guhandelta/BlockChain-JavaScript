@@ -21,8 +21,8 @@ app.get('/blockchain', function(req,res){
 });
 // This endpoint will be hit during a broadcast, to receive teh newTransaction and add it to the pendingTransaction[] of that node
 app.post('/transaction', function(req,res){
-    // Whenever, this endpoint recieves the newTransaciton, all that needs to be done is just to push it into-- 
-    // --the pendingTransactions[] of the node, that recieved this call
+    // Whenever, this endpoint received the newTransaciton, all that needs to be done is just to push it into-- 
+    // --the pendingTransactions[] of the node, that received this call
     const newTransaciton = req.body; //  This is done here to store the newTransaction, sent to this endpoint as the entire body of teh req
     const blockIndex = bitcoin.addTransactionsToPendingTransactions(newTransaciton);
     res.json({note: `The new transaction will be added to the block ${blockIndex}.`});
@@ -75,23 +75,76 @@ app.get('/mine', function(req,res){
     // 3) Hash of the new Block
     const blockHash = bitcoin.hashBlock(previousBlockHash, currentBlockData, nonce);
 
-    // Everytime someone mines a new block, they get a prize/reward of bitcoins(12.5 as per 2018)
-    bitcoin.createNewTransaction(12.5, "00",nodeAddress );// By giving sender address as 00, whenever, looking at transactions, it could be inferred as, the transactions from--
-    // -- the address 00 is a mining reward
-
     // The reward will be sent to the current node
     // This entire APU file may be treated as a network node, in the bitcoin blockchain - multiple instances of this api may act as different network nodes--
     // -- in the bitcoin blockchain => whenever any of the endpoints's are hit, the user is always communicating with this one network node
-
+ 
     // This fn() requires 3 params => Nonce, previousBlockHash, Hash
     const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
 
-    // Response for mining the new block
-    res.json({
-        note: "New Block Mined Successfully",
-        block: newBlock// Displaying this to the user will not affect the chain in anyway, 
-        // This is just to show the person who created/mined the block, to see/know how it looks like 
+    // Broadcast the newBlock created here, to all the other nodes in the network
+    const requestPromises = [];
+    bitcoin.networkNodes.forEach(networkNodeUrl =>{// Make a request to each nodes(@ /receive-new-block) and send along the new block
+        const requestOptions = {
+            url: networkNodeUrl + '/receive-new-block',
+            method: 'POST',
+            body: {newBlock: newBlock},   
+            json: true
+        };
+            requestPromises.push(rp(requestOptions));
+            // After the completion of the forEach(), there will be an array(requestPromises[]) filled with promises
     });
+    // Broadcasting the created new block to all the other nodes, inside the network
+    Promise.all(requestPromises)
+        .then(data =>{
+            // Create a mining reward transaction and broadcast it to teh entire network
+            const requestOptions ={
+                url: bitcoin.currentNodeUrl + '/transaction/broadcast', // A new req is made to this endpoint, after the broadcast is complete--
+                // --This request will make a mining reward transaction and broadcast it, to the entire blockchain network
+                method: 'POST',
+                body: {
+                    amount: 12.5,
+                    sender: "00",
+                    recipient: nodeAddress // Address of this current node
+                },
+                json: true
+            };
+            return rp(requestOptions);// This request runs, after all  the above calculations are complete
+    })
+    .then(data =>{
+    // Response for mining the new block --> The response block is given in here, to make sure this block gets executed after--
+    // --all the above calculations are complete
+        res.json({
+            note: "New Block Mined and Broadcasted Successfully",
+            block: newBlock// Displaying this to the user will not affect the chain in anyway,  
+            // This is just to show the person who created/mined the block, to see/know how it looks like 
+        });
+    });
+});
+
+// Endpoint that will be hit, on every node, when a new block is created and broadcasted in the network
+app.post('/receive-new-block', function(req,res){
+    const newBlock = req.body.newBlock; // Storing the newblock sent in the body of the res, in a const
+    const lastBlock = bitcoin.getLastBlock();
+    // Checking if the new block is legitimate
+    const hashCheck = lastBlock.hash === newBlock.previousBlockHash;// checking if the new block has the hash of the last block in the network--
+    // --in its previousBlockHash property, and confirm that it indeed comes after that block, in the chain
+    const indexCheck = lastBlock['index'] + 1 === newBlock['index'];// checking if the newBlock index is greater than the previous block index,--
+    // --by 1, to confirm that it indeed comes after that block, in the chain
+
+    if(hashCheck && indexCheck){ // Accept and add the new block to the chain if it is legitimate, by checking if it passes both the checks, else reject
+        bitcoin.chain.push(newBlock);
+        bitcoin.pendingTransactions = [];// Clear the pendingTransactions[], as the pendingTransactions will be added into the created newBlock
+        res.json({
+            note: 'New Block received and Accepted',
+            newBlock: newBlock
+        });
+    }else{ // If the newBlock does not pass both the tests and is not legitimate
+        res.json({
+            note: 'New block is not legitimate and is rejected',
+            newBlock: newBlock
+        });
+    }
 });
 
 // The endpoint that will register the new node(with itself) and broadcast it to the entire network
@@ -139,9 +192,9 @@ app.post('/register-and-broadcast-node', function(req,res){
 // Endpoint to register a node with the network(that the node already knows), by accepting the new node registered and broadcasted
 // This endpoint is only for the old nodes to register new nodes. If they also start to broadcast the new node to be added, it will severly degrade--
 // -- the performace of the blockhain n/w and lead to an infinite loop => totally crash the blockchain
-// So when other nodes recieve new node's URL, just register and not broadcast
+// So when other nodes receive new node's URL, just register and not broadcast
 app.post('/register-node', function(req,res){
-    //This is the end point in every node that will recieve the broadcast that is sent out by /register-and-broadcast-node endpoint     
+    //This is the end point in every node that will receive the broadcast that is sent out by /register-and-broadcast-node endpoint     
         const newNodeUrl = req.body.newNodeUrl;// Take the newNodeUrl(URL of the node, that is to be registered in the network) sent in the body and save it    
         const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
         const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
