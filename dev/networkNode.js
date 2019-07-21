@@ -270,6 +270,29 @@ app.get('/consensus', function(req,res){
         });
 });
 
+// Endpoint, that will return the block, corresponding to the the given blockhash
+app.get('/block/:blockHash', function(req,res){
+    // When this endpoint is hit, it will redirect to a url like http://localhost/block/DW3R4TE55Y65TERTGHYTUY65T => Hash of the block, which can be accessed by--
+    // --or using the *req.params* object. This obj will give access to any value in the URL that has a ':' preceeding it
+    // So when any requests are made to this endpoint, a blockhash will be sent in/along-with the URL, which can be grabbed by/using req.paramms.blockHash
+    const blockHash = req.params.blockHash;
+    const correctBlock = bitcoin.getBlock(blockHash); // This fn() return the exact block for the blockHash provided or returns *null*, incase if the block doesn't exist
+    res.json({
+        block: correctBlock
+    });
+});
+
+// Endpoint, that will return the transaction, corresponding to the the given transactionId
+app.get('/transaction/:transactionId', function(req,res){
+
+});
+
+// Endpoint, that will return all of the transactions made(Bitcoin sent or recieved), that correspond to this address + current balance(BTC owned by this address-- 
+// -- currently)
+app.get('/address/:address', function(req,res){
+ 
+});
+
 app.listen(port, function(){
     console.log(`Listening on port ${port}......`);
 }); 

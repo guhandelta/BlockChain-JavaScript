@@ -12,7 +12,7 @@ function Blockchain(){
 
     // Generating a Genesis Block(the 1st block of a blockchain) with arbitrary values
     this.createNewBlock(100,"0","0");
-}
+};
 
 Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, hash){
      const newBlock = {// Create a new block with all the transactions and push it into the chain
@@ -31,11 +31,11 @@ Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, hash){
      this.chain.push(newBlock);// Takes this new block that is created and pushes it into the chain and adds it to the chain
 
      return newBlock;
-}
+};
 
 Blockchain.prototype.getLastBlock = function() {
     return this.chain[this.chain.length - 1];
-}
+};
 
 Blockchain.prototype.createNewTransaction = function(amount, sender, recipient) {
     const newTransaction = {
@@ -46,12 +46,12 @@ Blockchain.prototype.createNewTransaction = function(amount, sender, recipient) 
     };
     
     return newTransaction;
-}
+};
 
 Blockchain.prototype.addTransactionsToPendingTransactions = function(transactionObj){
     this.pendingTransactions.push(transactionObj);
     return this.getLastBlock()['index'] + 1;// Return the index of the block, that this transaction will be added to
-}
+};
 
 Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockData, nonce) {
     // This fn will take a block from the block chain and hash it into a fixed length string
@@ -60,7 +60,7 @@ Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockData, n
     //  All of the data will be concatenated into a single string
     const hash = sha256(dataAsString);
     return hash; 
-}
+};
 
 Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData) {
     // Repeatedly run hashBlock() until it finds the correct Hash(with the same 4 bits in the begninning)
@@ -74,7 +74,7 @@ Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData)
     }
     return nonce;// Return the nonce that generated the current hash, which in this case starts with 0000. ==> None is the proof of work
 
-}
+};
 
 // Method to validate othre chains inside the Network, when comparing with the chain hosted on the current node
 Blockchain.prototype.chainIsValid = function(blockchain){
@@ -107,6 +107,15 @@ Blockchain.prototype.chainIsValid = function(blockchain){
 
     return validChain;
     
-}
+};
+
+Blockchain.prototype.getBlock = function(blockHash){
+    let correctBlock = null;
+    // Iterate through the Blockchain and find out & return the block with the blockHash 
+    this.chain.forEach(block => {
+        if(block.hash === blockHash) correctBlock = block;
+    });
+    return correctBlock; 
+};
 
 module.exports = Blockchain;// To allow the test.js to create new blocks for testing
