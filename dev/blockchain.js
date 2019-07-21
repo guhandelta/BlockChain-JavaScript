@@ -111,11 +111,31 @@ Blockchain.prototype.chainIsValid = function(blockchain){
 
 Blockchain.prototype.getBlock = function(blockHash){
     let correctBlock = null;
-    // Iterate through the Blockchain and find out & return the block with the blockHash 
+    // Iterate through the Blockchain and find out & return the corresponsing block for the blockHash providd
     this.chain.forEach(block => {
         if(block.hash === blockHash) correctBlock = block;
     });
     return correctBlock; 
 };
+
+Blockchain.prototype.getTransaction = function(transactionId){
+    // Iterate through the Blockchain and find out & return the corresponding Transaciton for the transacionId provided
+    let correctTransaction = null;
+    let correctBlock = null;
+
+    this.chain.forEach(block => {
+        block.transactions.forEach( transaction => {
+            if(transaction.transactionId === transactionId){
+                correctTransaction = transaction;
+                correctBlock = block; // Accesible from the outer forEach() loop
+            };
+        });
+    });
+
+    return {
+        transaction: correctTransaction,
+        block: correctBlock
+    };
+}
 
 module.exports = Blockchain;// To allow the test.js to create new blocks for testing

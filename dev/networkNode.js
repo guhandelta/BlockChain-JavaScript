@@ -284,7 +284,13 @@ app.get('/block/:blockHash', function(req,res){
 
 // Endpoint, that will return the transaction, corresponding to the the given transactionId
 app.get('/transaction/:transactionId', function(req,res){
+    const transactionId = req.params.transactionId;
+    const transactionData = bitcoin.getTransaction(transactionId);
 
+    res.json({
+        transaction: transactionData.transaction,
+        block: transactionData.block
+    });
 });
 
 // Endpoint, that will return all of the transactions made(Bitcoin sent or recieved), that correspond to this address + current balance(BTC owned by this address-- 
