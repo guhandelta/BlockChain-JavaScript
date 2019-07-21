@@ -221,6 +221,55 @@ app.post('/register-nodes-bulk', function(req,res){
 
 });
 
+// Endpoint to verify that all teh nodes have correct data
+//=====-----=-=-=-===> This consensus algo is based on/ impleents the **Longest Chain Rule** whihc is used on real Blockchains, for real 
+app.get('/consensus', function(req,res){
+    // 1) Make a request to everyother node inside the blockchain n/w, to get their copies of blockchain and compare it with the copy of -- 
+        // -- the blockchain hosted on the current node
+    const requestPromises =[];
+    bitcoin.networkNodes.forEach(networkNodeUrl => {
+        const requestOptions ={
+            url : networkNodeUrl + '/blockchain', // This network return the entire blockchain
+            method : 'GET',
+            json : true
+        };
+        requestPromises.push(rp(requestOptions));
+    });
+    Promise.all(requestPromises)
+        .then(blockchains => { // Data => array of blockhains -> Blockchains from everynoe of the network, 
+            const currentChainLength = bitcoin.chain.length; // Store the length of teh current chain, in a var
+            let maxChainLength = currentChainLength; // Set the maxChainLength
+            let newLongestChain = null;
+            let newPendingTransactions = null; // This is to store the pending transactions from the newer block, if there is a blockchain, in a node--
+            // -- which is longer than the current-longest-chain-length/current-chain-length
+            blockchains.forEach(blockchain => {
+                if(blockchain.chain.length > maxChainLength){
+                    maxChainLength = blockchain.chain.length; // Everytime a longer chain is found, the maxChainLength is reset to that val
+                    newLongestChain = blockchain.chain;
+                    newPendingTransactions = blockchain.pendingTransactions; // Getting the pendingTransactions of the longest chain
+                    // After the forEach() loop has been executed, the newLongesetChain & newPendingTransactions will be null if no longer chian is found
+            // After the forEach() loop hs ran, all the data, required, to determine that if the chain hosted on the current node, should be replaced
+
+                };
+            });
+            if( !newLongestChain || (newLongestChain && !bitcoin.chainIsValid(newLongestChain))){ // If there is no longer chain or the longer chain found is not valid
+                // In this case, the current chain need not be replaced
+                res.json({
+                    note: 'Current Chain has not been replaced',
+                    chain : bitcoin.chain
+                });
+            }else if(newLongestChain && bitcoin.chainIsValid(newLongestChain)){
+                bitcoin.chain = newLongestChain;
+                bitcoin.pendingTransactions = newPendingTransactions;
+
+                res.json({
+                    note  : 'This chain has been replaced',
+                    chain : bitcoin.chain
+                });
+            }
+        });
+});
+
 app.listen(port, function(){
     console.log(`Listening on port ${port}......`);
 }); 
