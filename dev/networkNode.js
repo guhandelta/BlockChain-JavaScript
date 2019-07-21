@@ -304,6 +304,11 @@ app.get('/address/:address', function(req,res){
     });
 });
 
+app.get('/block-explorer', function(req,res){
+    res.sendFile('./blockExplorer/index.html', {root: __dirname}); // root: __dirname means that, the file index.html will be searched within the current dir and--
+    // -- look for file in the specified path
+});
+
 app.listen(port, function(){
     console.log(`Listening on port ${port}......`);
 }); 
