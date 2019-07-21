@@ -296,7 +296,12 @@ app.get('/transaction/:transactionId', function(req,res){
 // Endpoint, that will return all of the transactions made(Bitcoin sent or recieved), that correspond to this address + current balance(BTC owned by this address-- 
 // -- currently)
 app.get('/address/:address', function(req,res){
- 
+    const address = req.params.address;
+    const addressData = bitcoin.getAddressData(address);
+
+    res.json({
+        addressData: addressData
+    });
 });
 
 app.listen(port, function(){
