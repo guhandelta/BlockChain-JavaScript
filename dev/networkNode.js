@@ -19,11 +19,11 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.get('/blockchain', function(req,res){
     res.send(bitcoin);
 });
-// This endpoint will be hit during a broadcast, to receive teh newTransaction and add it to the pendingTransaction[] of that node
+// This endpoint will be hit during a broadcast, to receive the newTransaction and add it to the pendingTransaction[] of that node
 app.post('/transaction', function(req,res){
     // Whenever, this endpoint received the newTransaciton, all that needs to be done is just to push it into-- 
     // --the pendingTransactions[] of the node, that received this call
-    const newTransaciton = req.body; //  This is done here to store the newTransaction, sent to this endpoint as the entire body of teh req
+    const newTransaciton = req.body; //  This is done here to store the newTransaction, sent to this endpoint as the entire body of the req
     const blockIndex = bitcoin.addTransactionsToPendingTransactions(newTransaciton);
     res.json({note: `The new transaction will be added to the block ${blockIndex}.`});
 });
@@ -97,7 +97,7 @@ app.get('/mine', function(req,res){
     // Broadcasting the created new block to all the other nodes, inside the network
     Promise.all(requestPromises)
         .then(data =>{
-            // Create a mining reward transaction and broadcast it to teh entire network
+            // Create a mining reward transaction and broadcast it over the entire network
             const requestOptions ={
                 url: bitcoin.currentNodeUrl + '/transaction/broadcast', // A new req is made to this endpoint, after the broadcast is complete--
                 // --This request will make a mining reward transaction and broadcast it, to the entire blockchain network
@@ -221,8 +221,8 @@ app.post('/register-nodes-bulk', function(req,res){
 
 });
 
-// Endpoint to verify that all teh nodes have correct data
-//=====-----=-=-=-===> This consensus algo is based on/ impleents the **Longest Chain Rule** whihc is used on real Blockchains, for real 
+// Endpoint to verify that all the nodes have correct data
+//=====-----=-=-=-===> This consensus algo is based on/ implements the **Longest Chain Rule** which is used on many Blockchains 
 app.get('/consensus', function(req,res){
     // 1) Make a request to everyother node inside the blockchain n/w, to get their copies of blockchain and compare it with the copy of -- 
         // -- the blockchain hosted on the current node
@@ -237,7 +237,7 @@ app.get('/consensus', function(req,res){
     });
     Promise.all(requestPromises)
         .then(blockchains => { // Data => array of blockhains -> Blockchains from everynoe of the network, 
-            const currentChainLength = bitcoin.chain.length; // Store the length of teh current chain, in a var
+            const currentChainLength = bitcoin.chain.length; // Store the length of the current chain, in a var
             let maxChainLength = currentChainLength; // Set the maxChainLength
             let newLongestChain = null;
             let newPendingTransactions = null; // This is to store the pending transactions from the newer block, if there is a blockchain, in a node--
@@ -282,7 +282,7 @@ app.get('/block/:blockHash', function(req,res){
     });
 });
 
-// Endpoint, that will return the transaction, corresponding to the the given transactionId
+// Endpoint, that will return the transaction, corresponding to the the given transactionId 
 app.get('/transaction/:transactionId', function(req,res){
     const transactionId = req.params.transactionId;
     const transactionData = bitcoin.getTransaction(transactionId);
